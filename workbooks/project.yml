@@ -1,0 +1,147 @@
+# based on https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/blob/master/workbooks/instance_expiration_global.yaml
+---
+version: '2.0'
+
+name: project
+
+workflows:
+
+  cronjobs:
+    type: direct
+    tasks:
+      create_expiration_cronjob:
+        action: mistral.cron_triggers_create
+        input:
+          name: "hourly_project_expiration"
+          workflow_identifier: project.expiration
+          workflow_input: {}
+          pattern: "0 * * * *"
+
+      create_cleanup_cronjob:
+        action: mistral.cron_triggers_create
+        input:
+          name: "hourly_project_cleanup"
+          workflow_identifier: project.cleanup
+          workflow_input: {}
+          pattern: "0 * * * *"
+
+  cleanup:
+    type: direct
+    tasks:
+      get_unused_floating_ips:
+        action: nova.floating_ips_findall instance_id=null
+        publish:
+          unused_floating_ips: <% task(get_unused_floating_ips).result.select($.ip) %>
+          unused_floating_ips_ids: <% task(get_unused_floating_ips).result.select($.id) %>
+        on-success:
+          - delete_unused_floating_ips
+
+      delete_unused_floating_ips:
+        with-items: floating_ip_id in <% $.unused_floating_ips_ids %>
+        action: neutron.delete_floatingip floatingip=<% $.floating_ip_id %>
+
+  expiration:
+    type: direct
+
+    output:
+      instances: <% $.instances %>
+
+    tasks:
+      get_instances:
+        action: nova.servers_findall
+        publish:
+          instances: <% task(get_instances).result.select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, user_id => $.user_id)) %>
+#          instances: <% task(get_instances).result.where($.name =~ regex("molecule.*")).select(dict(id => $.id, name => $.name, expire_at => $.metadata.get('expire_at', ''), status => $.status, user_id => $.user_id)) %>
+        on-success:
+          - delete_instances
+
+      delete_instances:
+        with-items: instance in <% $.instances %>
+        workflow: project.instance_expiration instance=<% $.instance %>
+
+  instance_expiration:
+    type: direct
+
+    input:
+      - instance
+
+    tasks:
+      initialisation:
+        publish:
+          now: <% now().replace(minute=>0, second=>0, microsecond=>0) %>
+          max: <% now().replace(minute=>0, second=>0, microsecond=>0) + timespan(hours=>1) %>
+          regexp_date: '^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}\.\d{6}$'
+          grace_period: 1
+        on-success:
+          - check_instance_expiration
+
+      check_instance_expiration:
+        action: std.noop
+        on-success:
+          - fix_instance_expiration: <% not $.instance.expire_at or not regex(task(initialisation).published.regexp_date).matches($.instance.expire_at) or (datetime($.instance.expire_at) >  datetime(task(initialisation).published.max)) %>
+          - process_instance_expiration: <% $.instance.expire_at and regex(task(initialisation).published.regexp_date).matches($.instance.expire_at) and (datetime($.instance.expire_at) <= datetime(task(initialisation).published.max)) %>
+
+      fix_instance_expiration:
+        action: nova.servers_set_meta_item
+        input:
+          server: <% $.instance.id %>
+          key: expire_at
+          value: <% task(initialisation).published.get('max') %>
+        publish:
+          instance: <% dict(id => $.instance.id, name => $.instance.name, expire_at => task(initialisation).published.get('max'), user_id => $.instance.user_id) %>
+        on-success:
+          - process_instance_expiration
+
+      process_instance_expiration:
+        action: std.noop
+        on-success:
+          - expire_instance: <% datetime(task(initialisation).published.now) = datetime($.instance.expire_at) %>
+          - delete_instance: <% (datetime(task(initialisation).published.now) - datetime($.instance.expire_at)).hours = task(initialisation).published.grace_period %>
+
+      delete_instance:
+        workflow: project.delete_instance_job instance=<% $.instance %>
+
+      expire_instance:
+        workflow: project.expire_instance_job instance=<% $.instance %>
+
+  expire_instance_job:
+    type: direct
+
+    input:
+      - instance
+
+    tasks:
+      check_instance:
+        action: nova.servers_get server=<% $.instance.id %>
+        on-success:
+          - expire_instance
+
+      expire_instance:
+        action: nova.servers_stop server=<% $.instance.id %>
+        on-success:
+          - lock_instance
+        on-error:
+          - lock_instance
+
+      lock_instance:
+        action: nova.servers_lock server=<% $.instance.id %>
+
+  delete_instance_job:
+    type: direct
+
+    input:
+      - instance
+
+    tasks:
+      check_instance:
+        action: nova.servers_get server=<% $.instance.id %>
+        on-success:
+          - unlock_instance
+
+      unlock_instance:
+        action: nova.servers_unlock server=<% $.instance.id %>
+        on-success:
+          - delete_instance
+
+      delete_instance:
+        action: nova.servers_delete server=<% $.instance.id %>
