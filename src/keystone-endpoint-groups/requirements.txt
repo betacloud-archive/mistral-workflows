@@ -1,0 +1,4 @@
+shade
+tabulate
+os-client-config
+python-keystoneclient 
