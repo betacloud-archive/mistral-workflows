@@ -1,13 +1,17 @@
 ---
-sudo: required
+sudo: false
 
 language: python
+
+cache:
+  directories:
+    - $HOME/.cache/pip
 
 before_install:
   - openssl aes-256-cbc -K $encrypted_bdf29e24ac6e_key -iv $encrypted_bdf29e24ac6e_iv -in clouds.yml.enc -out clouds.yml -d
 
 install:
-  - pip install -r test-requirements.txt
+  - pip install -r requirements.txt
 
 script:
   - scripts/validate.sh
