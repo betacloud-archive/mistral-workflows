@@ -1,0 +1,16 @@
+# source: https://gitlab.cern.ch/cloud-infrastructure/mistral-workflows/blob/master/workflows/noop.yaml
+---
+version: '2.0'
+
+noop:
+  type: direct
+  description: noop
+  input:
+    - id
+
+  output:
+    id: <% $.id %>
+
+  tasks:
+    no_operation:
+      action: std.noop
