@@ -7,7 +7,7 @@ code=0
 for file in workbooks/*.yml; do
     [ -e "$file" ] || continue
     echo "Validating $file"
-    error=$(openstack --os-cloud testbed workbook validate $file -f value -c Error | head -1)
+    error=$(openstack --os-cloud mistral workbook validate $file -f value -c Error | head -1)
     if [ "$error" != "None" ]; then
         echo "Validation failed on $file please check error '$error'"
         code=1
@@ -17,7 +17,7 @@ done
 for file in workflows/*.yml; do
     [ -e "$file" ] || continue
     echo "Validating $file"
-    error=$(openstack --os-cloud testbed workflow validate $file -f value -c Error | head -1)
+    error=$(openstack --os-cloud mistral workflow validate $file -f value -c Error | head -1)
     if [ "$error" != "None" ]; then
         echo "Validation failed on $file please check error '$error'"
         code=1

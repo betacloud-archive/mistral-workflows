@@ -16,6 +16,9 @@ install:
 script:
   - scripts/validate.sh
 
+after_success:
+  - 'if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_EVENT_TYPE" != "cron" ]]; then bash scripts/update.sh; fi'
+
 notifications:
   irc:
     channels:
