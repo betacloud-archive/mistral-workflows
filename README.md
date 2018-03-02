@@ -1,5 +1,7 @@
 # mistral-workflows
 
+[![Build Status](https://travis-ci.org/betacloud/mistral-workflows.svg?branch=master)](https://travis-ci.org/betacloud/mistral-workflows)
+
 Mistral workflows that are used within the Betacloud.
 
 ## References
