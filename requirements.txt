@@ -1,2 +1,2 @@
-python-mistralclient
-python-openstackclient
+python-mistralclient<=3.0.0
+python-openstackclient<=3.8.1
