@@ -1,0 +1,29 @@
+---
+version: 2.0
+
+cleanup_unused_floating_ips:
+
+  type: direct
+  description: Cleanup unused floating ip addresses
+  input:
+    -
+      project_id:
+  output:
+    floating_ips: <% $.unused_floating_ips %>
+
+  tasks:
+    get_unused_floating_ips:
+      action: nova.floating_ips_findall
+      input:
+        search_opts:
+          instance_id: null
+          project_id: <% $.project_id %>
+      publish:
+        unused_floating_ips: <% task(get_unused_floating_ips).result.select($.ip) %>
+        unused_floating_ips_ids: <% task(get_unused_floating_ips).result.select($.id) %>
+      on-success:
+        - delete_unused_floating_ips
+
+    delete_unused_floating_ips:
+      with-items: floating_ip_id in <% $.unused_floating_ips_ids %>
+      action: neutron.delete_floatingip floatingip=<% $.floating_ip_id %>
