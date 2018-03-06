@@ -12,8 +12,7 @@ cleanup_floating_ips:
     get_unused_floating_ips:
       action: nova.floating_ips_findall
       input:
-        search_opts:
-          instance_id: null
+        instance_id: null
       publish:
         unused_floating_ips: <% task(get_unused_floating_ips).result.select($.ip) %>
         unused_floating_ips_ids: <% task(get_unused_floating_ips).result.select($.id) %>
