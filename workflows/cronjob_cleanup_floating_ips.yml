@@ -4,9 +4,6 @@ version: 2.0
 cronjob_cleanup_floating_ips:
 
   type: direct
-  input:
-    -
-      project_id:
 
   tasks:
     create_expiration_cronjob:
@@ -14,6 +11,5 @@ cronjob_cleanup_floating_ips:
       input:
         name: cleanup_floating_ips
         workflow_identifier: cleanup_floating_ips
-        workflow_input:
-          project_id: <% $.project_id %>
+        workflow_input: {}
         pattern: "0 3 * * *"

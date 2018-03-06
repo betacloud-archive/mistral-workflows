@@ -5,9 +5,6 @@ cleanup_floating_ips:
 
   type: direct
   description: Cleanup floating ip addresses
-  input:
-    -
-      project_id:
   output:
     floating_ips: <% $.unused_floating_ips %>
 
@@ -17,7 +14,6 @@ cleanup_floating_ips:
       input:
         search_opts:
           instance_id: null
-          project_id: <% $.project_id %>
       publish:
         unused_floating_ips: <% task(get_unused_floating_ips).result.select($.ip) %>
         unused_floating_ips_ids: <% task(get_unused_floating_ips).result.select($.id) %>
