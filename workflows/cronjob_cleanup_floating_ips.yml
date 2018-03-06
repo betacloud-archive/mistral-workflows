@@ -1,0 +1,19 @@
+---
+version: 2.0
+
+cronjob_cleanup_floating_ips:
+
+  type: direct
+  input:
+    -
+      project_id:
+
+  tasks:
+    create_expiration_cronjob:
+      action: mistral.cron_triggers_create
+      input:
+        name: cleanup_floating_ips
+        workflow_identifier: cleanup_floating_ips
+        workflow_input:
+          project_id: <% $.project_id %>
+        pattern: "0 3 * * *"
