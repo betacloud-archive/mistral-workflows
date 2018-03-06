@@ -12,10 +12,10 @@ for file in workbooks/*.yml; do
 
     if [[ " ${WORKBOOKS[@]} " =~ "${name}" ]]; then
         echo "Updating workbook $name"
-        openstack --os-cloud mistral workbook update --public $file
+        openstack --os-cloud mistral workbook update $file
     else
         echo "Creating workbook $name"
-        openstack --os-cloud mistral workbook create --public $file
+        openstack --os-cloud mistral workbook create $file
     fi
 done
 
