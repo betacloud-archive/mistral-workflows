@@ -1,10 +1,10 @@
 ---
 version: 2.0
 
-cleanup_unused_floating_ips:
+cleanup_floating_ips:
 
   type: direct
-  description: Cleanup unused floating ip addresses
+  description: Cleanup floating ip addresses
   input:
     -
       project_id:
